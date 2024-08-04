@@ -7,6 +7,14 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.10"
+youtube-transcript-api = "^0.6.2"
+fastapi = "^0.112.0"
+uvicorn = "^0.30.5"
+redis = "^5.0.8"
+rq = "^1.16.2"
+ffmpeg-python = "^0.2.0"
+openai-whisper = "^20231117"
+python-dotenv = "^1.0.1"
 
 
 [build-system]

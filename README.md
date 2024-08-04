@@ -31,4 +31,12 @@ poetry install
 TODO: precommit
 
 ## Usage
-TODO
+
+After installation, start the service using the following command:
+```bash
+uvicorn transcription_service.main:app --reload --env-file=.example.env
+```
+where:
+- `--reload` flag enables auto-reloading of the server on code changes.
+- `--env-file` flag specifies the path to the environment file – it can be omitted if variables are injected
+into the environment using some other way.
