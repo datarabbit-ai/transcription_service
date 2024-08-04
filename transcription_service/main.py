@@ -6,6 +6,7 @@ from redis import Redis
 from rq import Queue
 
 from transcription_service import config
+from transcription_service.api import api_router
 
 
 @asynccontextmanager
@@ -27,3 +28,4 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+app.include_router(api_router)
