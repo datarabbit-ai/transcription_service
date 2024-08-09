@@ -2,6 +2,15 @@ FROM python:3.10
 
 WORKDIR /app
 
+# Install system dependencies and ffmpeg.
+# This isn't necessary for the API, but it is for the worker. We have one shared image for both, and the cost
+# of installing ffmpeg is low, so we do it here. If we decide to embed the models itself into the worker image, then
+# the split the worker and the API into separate images is likely to happen.
+RUN apt-get update \
+    && apt-get install -y \
+       ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
 # Install poetry
 RUN pip install poetry
 
