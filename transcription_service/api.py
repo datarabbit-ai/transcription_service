@@ -1,8 +1,10 @@
 import shutil
 from datetime import datetime
 from pathlib import Path
+from typing import Optional, Tuple
 
 from fastapi import APIRouter, File, HTTPException, Query, Request, UploadFile
+from redis import Redis
 from rq.job import Job
 
 from transcription_service import config
@@ -51,9 +53,33 @@ def upload(request: Request, file: UploadFile = File(...)):
     # Else shouldn't ever happen as we handle the OTHER type earlier/before with different error code.
 
     # Create a job with a custom ID – otherwise, RQ will generate a random one that won't match the reference ID
-    request.app.state.queue.enqueue(job_type, reference_id, job_id=reference_id)
+    # TTLs are set to -1 to prevent the job from being removed from the queue after processing as we use them
+    # for listing
+    request.app.state.queue.enqueue(job_type, reference_id, job_id=reference_id, result_ttl=-1, failure_ttl=-1)
 
     return {"reference_id": reference_id}
+
+
+def _get_job_status_and_error_message(reference_id: str, redis_conn: Redis) -> Tuple[TranscriptionStatusEnum, Optional[str]]:
+    # Check the transcription job status
+    job = Job.fetch(reference_id, connection=redis_conn)
+    if job.is_queued:
+        status = TranscriptionStatusEnum.QUEUED
+        message = None
+    elif job.is_started:
+        status = TranscriptionStatusEnum.PROCESSING
+        message = None
+    elif job.is_finished:
+        status = TranscriptionStatusEnum.COMPLETED
+        message = None
+    elif job.is_failed:
+        status = TranscriptionStatusEnum.FAILED
+        message = job.exc_info
+    else:
+        status = TranscriptionStatusEnum.UNKNOWN
+        message = None
+
+    return status, message
 
 
 @api_router.get("/list", response_model=ListTranscriptionStatusesPaginatedResponse)
@@ -84,24 +110,20 @@ def list_transcriptions(
     reference_ids = reference_ids[start:end]
 
     for reference_id in reference_ids:
-        # Check the transcription job status
-        job = Job.fetch(reference_id, connection=request.app.state.redis_conn)
-        if job.is_queued:
-            status = TranscriptionStatusEnum.QUEUED
-            message = None
-        elif job.is_started:
-            status = TranscriptionStatusEnum.PROCESSING
-            message = None
-        elif job.is_finished:
-            status = TranscriptionStatusEnum.COMPLETED
-            message = None
-        elif job.is_failed:
-            status = TranscriptionStatusEnum.FAILED
-            message = job.exc_info
-        else:
-            status = TranscriptionStatusEnum.UNKNOWN
-            message = None
-
-        transcription_statuses.append(TranscriptionStatus(reference_id=reference_id, status=status, error_message=message))
+        status, error_message = _get_job_status_and_error_message(reference_id, request.app.state.redis_conn)
+        transcription_statuses.append(
+            TranscriptionStatus(reference_id=reference_id, status=status, error_message=error_message)
+        )
 
     return ListTranscriptionStatusesPaginatedResponse(items=transcription_statuses, total=total, page=page, size=size)
+
+
+@api_router.get("/status/{reference_id}", response_model=TranscriptionStatus)
+async def get_status(request: Request, reference_id: str):
+    """
+    Get the transcription status for a specific file.
+    """
+    if reference_id not in (path.name for path in config.UPLOADS_DIR.iterdir()):
+        raise HTTPException(status_code=404, detail="Reference not found.")
+    status, error_message = _get_job_status_and_error_message(reference_id, request.app.state.redis_conn)
+    return TranscriptionStatus(reference_id=reference_id, status=status, error_message=error_message)
