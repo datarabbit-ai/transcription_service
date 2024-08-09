@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel
 
@@ -26,3 +26,10 @@ class TranscriptionStatus(BaseModel):
     reference_id: str
     status: TranscriptionStatusEnum
     error_message: Optional[str]
+
+
+class ListTranscriptionStatusesPaginatedResponse(BaseModel):
+    items: List[TranscriptionStatus]
+    total: int
+    page: int
+    size: int

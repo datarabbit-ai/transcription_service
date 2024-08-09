@@ -1,13 +1,18 @@
 import shutil
 from datetime import datetime
 from pathlib import Path
-from typing import List
 
-from fastapi import APIRouter, File, HTTPException, Request, UploadFile
+from fastapi import APIRouter, File, HTTPException, Query, Request, UploadFile
 from rq.job import Job
 
 from transcription_service import config
-from transcription_service.models import MediaType, TranscriptionStatus, TranscriptionStatusEnum, UploadResponse
+from transcription_service.models import (
+    ListTranscriptionStatusesPaginatedResponse,
+    MediaType,
+    TranscriptionStatus,
+    TranscriptionStatusEnum,
+    UploadResponse,
+)
 from transcription_service.transcription import determine_media_type, transcribe_audio, transcribe_video
 
 api_router = APIRouter()
@@ -51,15 +56,32 @@ def upload(request: Request, file: UploadFile = File(...)):
     return {"reference_id": reference_id}
 
 
-@api_router.get("/list", response_model=List[TranscriptionStatus])
-def list_transcriptions(request: Request):
+@api_router.get("/list", response_model=ListTranscriptionStatusesPaginatedResponse)
+def list_transcriptions(
+    request: Request,
+    page: int = Query(1, ge=1),
+    size: int = Query(10, ge=1, le=100),
+    sort_order: str = Query("asc", regex="^(asc|desc)$", description="Sort order by file creation time."),
+):
     """
-    Get a list of all video files and their transcription status.
+    Get a paginated list of all files to transcribe and their transcription status.
     """
     transcription_statuses = []
 
     # List all files for transcription in the upload directory
-    reference_ids = [path.name for path in config.UPLOADS_DIR.iterdir()]
+    reference_ids = sorted(
+        (path.name for path in config.UPLOADS_DIR.iterdir()),
+        key=lambda x: (config.UPLOADS_DIR / x).stat().st_ctime,
+        reverse=sort_order == "desc",
+    )
+    total = len(reference_ids)
+
+    # Calculate start and end indices for the current page
+    start = (page - 1) * size
+    end = start + size
+
+    # Get only the transcriptions for the current page
+    reference_ids = reference_ids[start:end]
 
     for reference_id in reference_ids:
         # Check the transcription job status
@@ -83,4 +105,4 @@ def list_transcriptions(request: Request):
 
         transcription_statuses.append(TranscriptionStatus(reference_id=reference_id, status=status, error_message=message))
 
-    return transcription_statuses
+    return ListTranscriptionStatusesPaginatedResponse(items=transcription_statuses, total=total, page=page, size=size)
