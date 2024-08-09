@@ -10,6 +10,7 @@ from rq.job import Job
 
 from transcription_service import config
 from transcription_service.models import (
+    HealthCheckResponse,
     ListTranscriptionStatusesPaginatedResponse,
     MediaType,
     TranscriptionStatus,
@@ -144,3 +145,47 @@ async def download_transcription(request: Request, reference_id: str):
     transcription_path = config.TRANSCRIPTIONS_DIR / f"{reference_id}.txt"
 
     return FileResponse(transcription_path, filename=f"{reference_id}_transcription.txt")
+
+
+@api_router.get("/ping")
+def ping_check():
+    return {"ping": "pong"}
+
+
+def check_redis_health(redis_conn: Redis) -> bool:
+    """Check the health of the Redis connection/DB."""
+    try:
+        redis_conn.ping()
+        return True
+    except Exception as e:
+        return False
+
+
+def check_redis_workers(redis_conn: Redis) -> bool:
+    """Check the health of the Redis workers."""
+    try:
+        # Check Redis workers' connectivity and status
+        worker_queues = redis_conn.smembers("rq:workers")
+
+        if not worker_queues:
+            return False  # No workers registered
+
+        for worker_key in worker_queues:
+            worker_info = redis_conn.hgetall(worker_key)
+            if worker_info:
+                return True
+
+        return False
+    except Exception as e:
+        return False
+
+
+@api_router.get("/health", response_model=HealthCheckResponse)
+def health_check(request: Request):
+    redis_health = check_redis_health(request.app.state.redis_conn)
+    web_app_health = True  # We're running, so it's healthy
+    workers_health = check_redis_workers(request.app.state.redis_conn)
+
+    return HealthCheckResponse(
+        redis_is_healthy=redis_health, web_app_is_healthy=web_app_health, at_least_one_worker_is_healthy=workers_health
+    )

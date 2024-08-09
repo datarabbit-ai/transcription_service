@@ -33,3 +33,9 @@ class ListTranscriptionStatusesPaginatedResponse(BaseModel):
     total: int
     page: int
     size: int
+
+
+class HealthCheckResponse(BaseModel):
+    redis_is_healthy: bool
+    web_app_is_healthy: bool
+    at_least_one_worker_is_healthy: bool
