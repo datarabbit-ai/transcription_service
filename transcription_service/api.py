@@ -13,7 +13,7 @@ from transcription_service.models import (
     TranscriptionStatusEnum,
     UploadResponse,
 )
-from transcription_service.transcription import determine_media_type, transcribe_audio, transcribe_video
+from transcription_service.transcription import determine_media_type, transcribe_audio_task, transcribe_video_task
 
 api_router = APIRouter()
 
@@ -45,9 +45,9 @@ def upload(request: Request, file: UploadFile = File(...)):
         file.file.close()
 
     if media_type == MediaType.VIDEO:
-        job_type = transcribe_video
+        job_type = transcribe_video_task
     elif media_type == MediaType.AUDIO:
-        job_type = transcribe_audio
+        job_type = transcribe_audio_task
     # Else shouldn't ever happen as we handle the OTHER type earlier/before with different error code.
 
     # Create a job with a custom ID – otherwise, RQ will generate a random one that won't match the reference ID
