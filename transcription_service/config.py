@@ -11,3 +11,5 @@ TRANSCRIPTIONS_DIR = Path(os.environ["TRANSCRIPTIONS_DIR"])
 # is independent/does not rely on them, so it shouldn't crash if they are not set.
 WHISPER_MODEL_NAME = os.environ.get("WHISPER_MODEL_NAME", "base")
 WHISPER_MODEL_DEVICE = os.environ.get("WHISPER_MODEL_DEVICE", "cpu")
+
+LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
