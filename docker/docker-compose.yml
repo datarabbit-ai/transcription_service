@@ -2,7 +2,7 @@ services:
   redis:
     image: redis:6.2-alpine
     ports:
-      - "6379:${REDIS_PORT}"
+      - "6380:6379"
     volumes:
       - ./volumes/redis_data:/data
     command: redis-server --appendonly yes
@@ -11,3 +11,50 @@ services:
       interval: 10s
       timeout: 3s
       retries: 3
+
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.base
+    command: ["uvicorn", "transcription_service.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    ports:
+      - "8001:8000"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=10
+      - UPLOADS_DIR=/app/uploads
+      - TRANSCRIPTIONS_DIR=/app/transcriptions
+      - WHISPER_MODEL_NAME="large
+      - WHISPER_MODEL_DEVICE=cuda
+    volumes:
+      - ./volumes/api_uploads:/app/uploads
+      - ./volumes/api_transcriptions:/app/transcriptions
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://api:8000/ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+
+  worker:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.base
+    command: ["python", "transcription_service/worker.py"]
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=10
+      - UPLOADS_DIR=/app/uploads
+      - TRANSCRIPTIONS_DIR=/app/transcriptions
+      - WHISPER_MODEL_NAME=large
+      - WHISPER_MODEL_DEVICE=cuda
+    volumes:
+      - ./volumes/api_uploads:/app/uploads
+      - ./volumes/api_transcriptions:/app/transcriptions
+    depends_on:
+      redis:
+        condition: service_healthy
