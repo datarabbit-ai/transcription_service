@@ -2,6 +2,7 @@ import shutil
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Tuple
+from urllib.parse import unquote
 
 from fastapi import APIRouter, File, HTTPException, Query, Request, UploadFile
 from fastapi.responses import FileResponse
@@ -57,7 +58,9 @@ def upload(request: Request, file: UploadFile = File(...)):
     # Create a job with a custom ID – otherwise, RQ will generate a random one that won't match the reference ID
     # TTLs are set to -1 to prevent the job from being removed from the queue after processing as we use them
     # for listing
-    request.app.state.queue.enqueue(job_type, reference_id, job_id=reference_id, result_ttl=-1, failure_ttl=-1)
+    request.app.state.queue.enqueue(
+        job_type, reference_id, job_id=reference_id, result_ttl=-1, failure_ttl=-1, job_timeout=60 * 60
+    )
 
     return {"reference_id": reference_id}
 
@@ -125,6 +128,7 @@ async def get_status(request: Request, reference_id: str):
     """
     Get the transcription status for a specific file.
     """
+    reference_id = unquote(reference_id)
     if reference_id not in (path.name for path in config.UPLOADS_DIR.iterdir()):
         raise HTTPException(status_code=404, detail="Reference not found.")
     status, error_message = _get_job_status_and_error_message(reference_id, request.app.state.redis_conn)
@@ -133,6 +137,7 @@ async def get_status(request: Request, reference_id: str):
 
 @api_router.get("/download/{reference_id}")
 async def download_transcription(request: Request, reference_id: str):
+    reference_id = unquote(reference_id)
     if reference_id not in (path.name for path in config.UPLOADS_DIR.iterdir()):
         raise HTTPException(status_code=404, detail="Reference not found.")
 
