@@ -17,4 +17,4 @@ repos:
     hooks:
     - id: isort
       name: isort (python)
-      args: ['-c', '-v', '--line-length=127']
+      args: ['-c', '-v', '--line-length=127', '--profile', 'black',  '--filter-files']
