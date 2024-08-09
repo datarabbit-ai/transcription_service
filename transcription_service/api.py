@@ -93,12 +93,11 @@ def list_transcriptions(
             status = TranscriptionStatusEnum.PROCESSING
             message = None
         elif job.is_finished:
-            if job.return_value()["status"] == "success":
-                status = TranscriptionStatusEnum.COMPLETED
-                message = None
-            else:
-                status = TranscriptionStatusEnum.FAILED
-                message = job.return_value()["message"]
+            status = TranscriptionStatusEnum.COMPLETED
+            message = None
+        elif job.is_failed:
+            status = TranscriptionStatusEnum.FAILED
+            message = job.exc_info
         else:
             status = TranscriptionStatusEnum.UNKNOWN
             message = None

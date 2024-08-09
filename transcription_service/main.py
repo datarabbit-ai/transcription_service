@@ -1,6 +1,5 @@
 from contextlib import asynccontextmanager
 
-import whisper
 from fastapi import FastAPI
 from redis import Redis
 from redis.exceptions import ConnectionError as RedisConnectionError
@@ -35,7 +34,6 @@ async def lifespan(app: FastAPI):
     config.UPLOADS_DIR.mkdir(exist_ok=True)
     config.TRANSCRIPTIONS_DIR.mkdir(exist_ok=True)
 
-    app.state.transcription_model = whisper.load_model(config.WHISPER_MODEL_NAME)
     app.state.redis_conn = Redis(host=config.REDIS_HOST, port=config.REDIS_PORT, db=config.REDIS_DB)
     redis_connection_successful = _validate_redis_connection(app.state.redis_conn)
     if not redis_connection_successful:
