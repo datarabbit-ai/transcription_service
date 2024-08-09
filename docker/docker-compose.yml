@@ -25,8 +25,6 @@ services:
       - REDIS_DB=10
       - UPLOADS_DIR=/app/uploads
       - TRANSCRIPTIONS_DIR=/app/transcriptions
-      - WHISPER_MODEL_NAME="large
-      - WHISPER_MODEL_DEVICE=cuda
     volumes:
       - ./volumes/api_uploads:/app/uploads
       - ./volumes/api_transcriptions:/app/transcriptions
@@ -50,8 +48,8 @@ services:
       - REDIS_DB=10
       - UPLOADS_DIR=/app/uploads
       - TRANSCRIPTIONS_DIR=/app/transcriptions
-      - WHISPER_MODEL_NAME=large
-      - WHISPER_MODEL_DEVICE=cuda
+      - WHISPER_MODEL_NAME=base
+      - WHISPER_MODEL_DEVICE=cpu
     volumes:
       - ./volumes/api_uploads:/app/uploads
       - ./volumes/api_transcriptions:/app/transcriptions
