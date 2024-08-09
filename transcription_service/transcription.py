@@ -1,5 +1,4 @@
 import tempfile
-from functools import lru_cache
 from pathlib import Path
 
 import ffmpeg
@@ -7,12 +6,6 @@ import whisper
 
 from transcription_service import config
 from transcription_service.models import MediaType
-
-
-# TODO: investigate how RQ is working, as it seems the model is re-created each time.
-@lru_cache(maxsize=1)
-def load_whisper_model(model_name: str, device: str) -> whisper.Whisper:
-    return whisper.load_model(model_name).to(device)
 
 
 def determine_media_type(path: Path) -> MediaType:
@@ -34,9 +27,18 @@ def determine_media_type(path: Path) -> MediaType:
         return MediaType.OTHER
 
 
+def init_whisper_model(model_name: str, device: str) -> whisper.Whisper:
+    """
+    Init helper class responsible for setting up global whisper model instance – necessary because of how the
+    redis queue workers are implemented.
+    """
+    global TRANSCRIPTION_MODEL
+    TRANSCRIPTION_MODEL = whisper.load_model(model_name).to(device)
+
+
 def _transcribe_audio(path: Path) -> str:
-    model = load_whisper_model(config.WHISPER_MODEL_NAME, config.WHISPER_MODEL_DEVICE)
-    result = model.transcribe(str(path))
+    global TRANSCRIPTION_MODEL
+    result = TRANSCRIPTION_MODEL.transcribe(str(path))
     return result["text"]
 
 
