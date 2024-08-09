@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Optional, Tuple
 
 from fastapi import APIRouter, File, HTTPException, Query, Request, UploadFile
+from fastapi.responses import FileResponse
 from redis import Redis
 from rq.job import Job
 
@@ -127,3 +128,19 @@ async def get_status(request: Request, reference_id: str):
         raise HTTPException(status_code=404, detail="Reference not found.")
     status, error_message = _get_job_status_and_error_message(reference_id, request.app.state.redis_conn)
     return TranscriptionStatus(reference_id=reference_id, status=status, error_message=error_message)
+
+
+@api_router.get("/download/{reference_id}")
+async def download_transcription(request: Request, reference_id: str):
+    if reference_id not in (path.name for path in config.UPLOADS_DIR.iterdir()):
+        raise HTTPException(status_code=404, detail="Reference not found.")
+
+    job_status, error_message = _get_job_status_and_error_message(reference_id, request.app.state.redis_conn)
+    if job_status != TranscriptionStatusEnum.COMPLETED:
+        raise HTTPException(
+            status_code=400, detail=f"Transcription not yet completed or failed. " f"Current status: {job_status}"
+        )
+
+    transcription_path = config.TRANSCRIPTIONS_DIR / f"{reference_id}.txt"
+
+    return FileResponse(transcription_path, filename=f"{reference_id}_transcription.txt")
