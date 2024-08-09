@@ -31,8 +31,8 @@ async def lifespan(app: FastAPI):
     Run at startup
     Initialise the global objects and add them to app.state
     """
-    config.UPLOADS_DIR.mkdir(exist_ok=True)
-    config.TRANSCRIPTIONS_DIR.mkdir(exist_ok=True)
+    config.UPLOADS_DIR.mkdir(exist_ok=True, parents=True)
+    config.TRANSCRIPTIONS_DIR.mkdir(exist_ok=True, parents=True)
 
     app.state.redis_conn = Redis(host=config.REDIS_HOST, port=config.REDIS_PORT, db=config.REDIS_DB)
     redis_connection_successful = _validate_redis_connection(app.state.redis_conn)
