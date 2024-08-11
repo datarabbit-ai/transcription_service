@@ -10,6 +10,12 @@ class MediaType(str, Enum):
     OTHER = "OTHER"
 
 
+class TimestampedWord(BaseModel):
+    word: str
+    start: str
+    end: str
+
+
 class UploadResponse(BaseModel):
     reference_id: str
 
