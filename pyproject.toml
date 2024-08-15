@@ -17,6 +17,7 @@ openai-whisper = "^20231117"
 python-dotenv = "^1.0.1"
 pytz = "^2024.1"
 python-multipart = "^0.0.9"
+yt-dlp = "^2024.8.6"
 
 
 [build-system]
