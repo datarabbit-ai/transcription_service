@@ -2,7 +2,7 @@ services:
   redis:
     image: redis:6.2-alpine
     ports:
-      - "6380:6379"
+      - "6380:6379"   # Expose Redis on a different port to avoid conflicts with local Redis instances
     volumes:
       - ./volumes/redis_data:/data
     command: redis-server --appendonly yes
@@ -18,7 +18,7 @@ services:
       dockerfile: docker/Dockerfile.base
     command: ["uvicorn", "transcription_service.main:app", "--host", "0.0.0.0", "--port", "8000"]
     ports:
-      - "8001:8000"
+      - "8001:8000"  # Expose the API on a different port to avoid conflicts with local services
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
@@ -48,11 +48,19 @@ services:
       - REDIS_DB=10
       - UPLOADS_DIR=/app/uploads
       - TRANSCRIPTIONS_DIR=/app/transcriptions
-      - WHISPER_MODEL_NAME=base
-      - WHISPER_MODEL_DEVICE=cpu
+      - WHISPER_MODEL_NAME=large-v3
+      - WHISPER_MODEL_DEVICE=cuda
     volumes:
       - ./volumes/api_uploads:/app/uploads
       - ./volumes/api_transcriptions:/app/transcriptions
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [ gpu ]
+    runtime: nvidia
     depends_on:
       redis:
         condition: service_healthy
