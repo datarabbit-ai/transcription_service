@@ -156,3 +156,11 @@ Future (possible) improvements:
 - Add configurable file size restrictions for uploads and video lengths to manage system resources effectively.
 - Implement user authentication and authorization for secure access to the API.
 - Add support for other TTS models than Whisper (it was prioritized due to being SOTA).
+
+## License
+
+Extracted from a larger system, this component was brought to you by 🐰 [datarabbit.ai](https://www.datarabbit.ai/) 🐰
+
+It is licenced under the Apache License, Version 2.0. in order to allow for the flexibility of use and modification.
+
+Do something cool with it! 🚀
