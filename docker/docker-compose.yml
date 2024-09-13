@@ -19,6 +19,8 @@ services:
     command: ["uvicorn", "transcription_service.main:app", "--host", "0.0.0.0", "--port", "8000"]
     ports:
       - "8001:8000"  # Expose the API on a different port to avoid conflicts with local services
+    env_file:
+      - "../.env"
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
@@ -42,6 +44,8 @@ services:
       context: ..
       dockerfile: docker/Dockerfile.base
     command: ["python", "transcription_service/worker.py"]
+    env_file:
+      - "../.env"
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
@@ -50,6 +54,7 @@ services:
       - TRANSCRIPTIONS_DIR=/app/transcriptions
       - WHISPER_MODEL_NAME=large-v3
       - WHISPER_MODEL_DEVICE=cuda
+      - DIARIZATION_MODEL_DEVICE=cuda
     volumes:
       - ./volumes/api_uploads:/app/uploads
       - ./volumes/api_transcriptions:/app/transcriptions
