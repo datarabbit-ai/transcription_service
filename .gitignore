@@ -3,6 +3,8 @@
 sandbox
 *.env
 
+docker/volumes
+
 ########################################################################################################################
 ### Generic Python .gitignore
 # Byte-compiled / optimized / DLL files

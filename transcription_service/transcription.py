@@ -3,10 +3,13 @@ import tempfile
 from pathlib import Path
 
 import ffmpeg
+import torch
 import whisper
+from pyannote.audio import Pipeline
 
 from transcription_service import config
 from transcription_service.models import MediaType
+from transcription_service.utils import diarize_text
 
 
 def determine_media_type(path: Path) -> MediaType:
@@ -37,6 +40,16 @@ def init_whisper_model(model_name: str, device: str) -> whisper.Whisper:
     TRANSCRIPTION_MODEL = whisper.load_model(model_name).to(device)
 
 
+def init_diarization_model(device: str) -> Pipeline:
+    """
+    Init helper class responsible for setting up global whisper model instance – necessary because of how the
+    redis queue workers are implemented.
+    """
+    global DIARIZATION_MODEL
+    torch_device = torch.device(device)
+    DIARIZATION_MODEL = Pipeline.from_pretrained("pyannote/speaker-diarization", use_auth_token=config.HF_TOKEN).to(torch_device)
+
+
 def _format_to_word_timestamps_json_string(transcription_segments: dict) -> str:
     word_timings = []
     for segment in transcription_segments:
@@ -48,9 +61,26 @@ def _format_to_word_timestamps_json_string(transcription_segments: dict) -> str:
     return word_timings_str
 
 
-def _transcribe_audio(path: Path, include_word_timestamps: bool) -> str:
+def _format_to_diarized_transcription_json_string(transcription_segments: dict, include_word_timestamps: bool) -> str:
+    transcript = []
+    for seg, spk, sent in transcription_segments:
+        if include_word_timestamps:
+            line = {"start": seg.start, "end": seg.end, "person": spk, "transcript": sent}
+        else:
+            line = {"person": spk, "transcript": sent}
+        transcript.append(line)
+    transcript_string = json.dumps(transcript, indent=4)
+    return transcript_string
+
+
+def _transcribe_audio(path: Path, include_word_timestamps: bool, diarize_speakers: bool) -> str:
     global TRANSCRIPTION_MODEL
     result = TRANSCRIPTION_MODEL.transcribe(str(path), word_timestamps=include_word_timestamps)
+    if diarize_speakers:
+        diarization_result = DIARIZATION_MODEL(str(path))
+        merge_results = diarize_text(result, diarization_result)
+        diarization_string = _format_to_diarized_transcription_json_string(merge_results, include_word_timestamps)
+        return diarization_string
     if include_word_timestamps:
         word_timings_str = _format_to_word_timestamps_json_string(result["segments"])
         return word_timings_str
@@ -58,7 +88,7 @@ def _transcribe_audio(path: Path, include_word_timestamps: bool) -> str:
         return result["text"]
 
 
-def transcribe_audio_task(reference_id: str, include_word_timestamps: bool = False) -> None:
+def transcribe_audio_task(reference_id: str, include_word_timestamps: bool = False, diarize_speakers: bool = False) -> None:
     """
     Transcribe an audio file with the given reference ID. The transcription result will be saved to a file in the
     configured transcriptions directory.
@@ -69,7 +99,7 @@ def transcribe_audio_task(reference_id: str, include_word_timestamps: bool = Fal
         format) Defaults to False to ensure backwards compatibility.
     """
     audio_path = config.UPLOADS_DIR / f"{reference_id}"
-    results = _transcribe_audio(audio_path, include_word_timestamps)
+    results = _transcribe_audio(audio_path, include_word_timestamps, diarize_speakers)
 
     # Save transcription
     with open(config.TRANSCRIPTIONS_DIR / f"{reference_id}.txt", "w", encoding="utf-8") as f:
@@ -83,7 +113,7 @@ def _extract_audio_from_video(video_path: Path, audio_path: Path) -> None:
     # It raises an exception if the command fails / returns non-zero internally.
 
 
-def transcribe_video_task(reference_id: str, include_word_timestamps: bool = False) -> None:
+def transcribe_video_task(reference_id: str, include_word_timestamps: bool = False, diarize_speakers: bool = False) -> None:
     """
     Transcribe a video file with the given reference ID. The transcription result will be saved to a file in the
     configured transcriptions directory.
@@ -97,7 +127,7 @@ def transcribe_video_task(reference_id: str, include_word_timestamps: bool = Fal
         video_path = config.UPLOADS_DIR / f"{reference_id}"
         temp_audio_path = Path(temp_dir) / "audio.wav"
         _extract_audio_from_video(video_path, temp_audio_path)
-        results = _transcribe_audio(temp_audio_path, include_word_timestamps)
+        results = _transcribe_audio(temp_audio_path, include_word_timestamps, diarize_speakers)
 
         # Save transcription
         with open(config.TRANSCRIPTIONS_DIR / f"{reference_id}.txt", "w", encoding="utf-8") as f:

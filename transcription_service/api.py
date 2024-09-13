@@ -24,7 +24,7 @@ api_router = APIRouter()
 
 
 @api_router.post("/upload", response_model=UploadResponse)
-def upload(request: Request, file: UploadFile = File(...), include_word_timestamps: bool = Form(False)):
+def upload(request: Request, file: UploadFile = File(...), include_word_timestamps: bool = Form(False), diarize_speakers: bool = Form(False)):
     """
     Upload a file for transcription.
     """
@@ -62,6 +62,7 @@ def upload(request: Request, file: UploadFile = File(...), include_word_timestam
         job_type,
         reference_id,
         include_word_timestamps,
+        diarize_speakers,
         job_id=reference_id,
         result_ttl=-1,
         failure_ttl=-1,
