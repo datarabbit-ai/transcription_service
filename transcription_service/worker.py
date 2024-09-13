@@ -3,7 +3,7 @@ from rq import SimpleWorker
 
 from transcription_service import config
 from transcription_service.logger import log
-from transcription_service.transcription import init_whisper_model, init_diarization_model
+from transcription_service.transcription import init_diarization_model, init_whisper_model
 
 
 def main():

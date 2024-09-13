@@ -47,7 +47,9 @@ def init_diarization_model(device: str) -> Pipeline:
     """
     global DIARIZATION_MODEL
     torch_device = torch.device(device)
-    DIARIZATION_MODEL = Pipeline.from_pretrained("pyannote/speaker-diarization", use_auth_token=config.HF_TOKEN).to(torch_device)
+    DIARIZATION_MODEL = Pipeline.from_pretrained("pyannote/speaker-diarization", use_auth_token=config.HF_TOKEN).to(
+        torch_device
+    )
 
 
 def _format_to_word_timestamps_json_string(transcription_segments: dict) -> str:
