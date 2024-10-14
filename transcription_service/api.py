@@ -18,6 +18,7 @@ from transcription_service.models import (
     TranscriptionStatusEnum,
     UploadResponse,
 )
+from transcription_service.logger import log
 from transcription_service.transcription import determine_media_type, transcribe_audio_task, transcribe_video_task
 
 api_router = APIRouter()
@@ -38,7 +39,8 @@ def upload(
     filename = Path(file.filename).name
     reference_id = f"{timestamp}_{filename}"
 
-    media_type = determine_media_type(config.UPLOADS_DIR / filename)
+    media_type = MediaType.AUDIO if file.headers["content-type"] == "audio/wav" else False
+    media_type = media_type if media_type else determine_media_type(config.UPLOADS_DIR / filename)
     if media_type == MediaType.OTHER:
         raise HTTPException(
             status_code=415, detail="Unsupported media type. Only " "limited audio and video formats are supported."
