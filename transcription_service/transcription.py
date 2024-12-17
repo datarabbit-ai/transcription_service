@@ -25,7 +25,7 @@ def determine_media_type(path: Path) -> MediaType:
     ext = path.suffix.lower()
     if ext in (".mp4", ".mov", ".avi", ".mkv"):
         return MediaType.VIDEO
-    elif ext in (".mp3", ".wav", ".flac", ".ogg"):
+    elif ext in (".mp3", ".wav", ".flac", ".ogg", ".webm"):
         return MediaType.AUDIO
     else:
         return MediaType.OTHER
