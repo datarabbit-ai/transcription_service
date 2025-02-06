@@ -1,0 +1,16 @@
+[Unit]
+Description=Bugs app service
+After=docker.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=oneshot
+RemainAfterExit=true
+RestartSec=1
+User=<user name>
+WorkingDirectory=<path to bugs project root directory>
+ExecStart=docker-compose up -d
+ExecStop=docker-compose down
+
+[Install]
+WantedBy=multi-user.target
