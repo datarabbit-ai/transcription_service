@@ -7,10 +7,10 @@ StartLimitIntervalSec=0
 Type=oneshot
 RemainAfterExit=true
 RestartSec=1
-User=<user name>
-WorkingDirectory=<path to bugs project root directory>
-ExecStart=docker-compose up -d
-ExecStop=docker-compose down
+User=wsmura
+WorkingDirectory=/home/wsmura/projects/transcription_service
+ExecStart=docker-compose -f docker/docker-compose.yml up -d
+ExecStop=docker-compose -f docker/docker-compose.yml down
 
 [Install]
 WantedBy=multi-user.target
