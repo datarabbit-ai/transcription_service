@@ -34,8 +34,13 @@ The service consists of the following components:
    ```bash
    git clone <org_path>/transcription_service.git
    cd transcription_service
-2. The environment variables are already set in the docker-compose.yml file. If you need to modify any settings, you can do so directly in the compose file or by creating a .env file in the project root directory.
-3. Build and start the services using Docker Compose:
+2. To access hugging face models for speaker diarization, you need to:
+   - request access to these models (they are released under MIT license):
+      - [pyannote/speaker-diarization](https://hf.co/pyannote/speaker-diarization)
+      - [pyannote/segmentation](https://hf.co/pyannote/segmentation)
+   - [create Hugging Face token](https://hf.co/settings/tokens) and put it in project root directory in `.env` file as `HF_TOKEN`
+3. The environment variables are already set in the docker-compose.yml file. If you need to modify any settings, you can do so directly in the compose file or by creating a .env file in the project root directory.
+4. Build and start the services using Docker Compose:
     ```bash
     docker-compose up --build
     ```
@@ -52,7 +57,8 @@ The following environment variables are configured in the docker-compose.yml fil
 - **UPLOADS_DIR:** Directory for uploaded files (defaults to /app/uploads, and the directory can be accessed from the volume)
 - **TRANSCRIPTIONS_DIR**: Directory for storing transcriptions (set to /app/transcriptions, and the directory can be accessed from the volume)
 - **WHISPER_MODEL_NAME**: Whisper model to use (defaults to large-v3 with best quality, see alternative models in resource-scare scenarios)
-- **WHISPER_MODEL_DEVICE**: Device to run the model on (set to cuda for GPU acceleration)
+- **WHISPER_MODEL_DEVICE**: Device to run the whisper model on (set to cuda for GPU acceleration)
+- **DIARIZATION_MODEL_DEVICE**: Device to run the diarization model on (set to cuda for GPU acceleration)
 
 #### GPU support
 GPU support is enabled by default in the Docker Compose configuration. To use it:

@@ -3,7 +3,7 @@ from rq import SimpleWorker
 
 from transcription_service import config
 from transcription_service.logger import log
-from transcription_service.transcription import init_whisper_model
+from transcription_service.transcription import init_diarization_model, init_whisper_model
 
 
 def main():
@@ -16,6 +16,7 @@ def main():
     # here: https://github.com/rq/rq/issues/1088 and https://python-rq.org/docs/workers/#performance-notes
     # TODO: potentially it can be embedded into the worker image itself, to trade off the startup time for the first job
     #       execution for storage space.
+    init_diarization_model(config.DIARIZATION_MODEL_DEVICE)
     init_whisper_model(config.WHISPER_MODEL_NAME, config.WHISPER_MODEL_DEVICE)
 
     log.info("Whisper model preloaded. Starting serving jobs...")

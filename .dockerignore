@@ -90,3 +90,6 @@ venv/
 
 # VS Code
 .vscode/
+
+# uploads / transcript / redis data
+docker/volumes
